@@ -1,114 +1,165 @@
-
 import logging
-import asyncio
-from aiogram import Bot, Dispatcher, types, executor
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from datetime import datetime
+import json
 import os
+from aiogram import Bot, Dispatcher, types, executor
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.dispatcher.filters import Command
 
-API_TOKEN = os.getenv("BOT_TOKEN")
+API_TOKEN = os.getenv("BOT_TOKEN")  # Railway .env da saqlanadi
 
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher(bot)
 
-players = []
-game_results = []
+DATA_FILE = "data.json"
 
-# Admin panel tugmalari
-def admin_panel():
-    kb = InlineKeyboardMarkup(row_width=1)
-    kb.add(
-        InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"),
-        InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="new_game"),
-        InlineKeyboardButton("3. Hisobotlarni chiqarish", callback_data="report")
-    )
-    return kb
+# Foydalanuvchilar va o'yinlar ma'lumotlarini saqlovchi fayl
+def load_data():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    return {"players": [], "games": []}
 
-def manage_players_kb():
-    kb = InlineKeyboardMarkup(row_width=1)
-    kb.add(
-        InlineKeyboardButton("O'yinchi qo'shish", callback_data="add_player"),
-        InlineKeyboardButton("O'yinchi o'chirish", callback_data="remove_player")
-    )
-    return kb
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f)
 
+data = load_data()
+current_game = []
+current_scores = {}
+adding_scores = False
+adding_player_index = 0
+
+# Boshlanish
 @dp.message_handler(commands=['start'])
-async def start_handler(message: types.Message):
-    await message.answer("Admin paneliga xush kelibsiz!", reply_markup=admin_panel())
+async def send_welcome(message: types.Message):
+    await message.reply("Salom! Bu Mahjong natijalar botidir. Admin paneldan foydalaning.")
 
+# Admin panel
+@dp.message_handler(commands=['admin'])
+async def admin_panel(message: types.Message):
+    markup = InlineKeyboardMarkup()
+    markup.add(
+        InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"),
+        InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="start_game"),
+        InlineKeyboardButton("3. Hisobotlar", callback_data="report")
+    )
+    await message.reply("Admin panel:", reply_markup=markup)
+
+# O'yinchilarni boshqarish
 @dp.callback_query_handler(lambda c: c.data == 'manage_players')
-async def manage_players(callback_query: types.CallbackQuery):
-    await callback_query.message.edit_text("O'yinchilarni boshqarish", reply_markup=manage_players_kb())
+async def manage_players(call: types.CallbackQuery):
+    markup = InlineKeyboardMarkup()
+    markup.add(
+        InlineKeyboardButton("➕ O'yinchi qo'shish", callback_data="add_player"),
+        InlineKeyboardButton("➖ O'yinchi o'chirish", callback_data="remove_player")
+    )
+    await call.message.answer("O'yinchilarni boshqarish:", reply_markup=markup)
 
+# O'yinchi qo'shish
 @dp.callback_query_handler(lambda c: c.data == 'add_player')
-async def add_player(callback_query: types.CallbackQuery):
-    await callback_query.message.answer("O'yinchi ismini yuboring:")
-    @dp.message_handler()
-    async def get_player_name(msg: types.Message):
-        players.append(msg.text)
-        await msg.answer(f"{msg.text} qoвЂshildi!", reply_markup=admin_panel())
+async def ask_player_name(call: types.CallbackQuery):
+    await call.message.answer("Yangi o'yinchi ismini yuboring:")
+    dp.register_message_handler(save_new_player, content_types=types.ContentTypes.TEXT, state=None)
 
+async def save_new_player(message: types.Message):
+    name = message.text.strip()
+    data["players"].append(name)
+    save_data(data)
+    await message.answer(f"O'yinchi qo'shildi: {name}")
+    dp.message_handlers.unregister(save_new_player)
+
+# O'yinchi o'chirish
 @dp.callback_query_handler(lambda c: c.data == 'remove_player')
-async def remove_player(callback_query: types.CallbackQuery):
-    if not players:
-        await callback_query.message.answer("Hozircha hech qanday o'yinchi yo'q.")
-        return
-    kb = InlineKeyboardMarkup()
-    for p in players:
-        kb.add(InlineKeyboardButton(p, callback_data=f"del_{p}"))
-    await callback_query.message.answer("Qaysi o'yinchini o'chirasiz?", reply_markup=kb)
+async def remove_player(call: types.CallbackQuery):
+    markup = InlineKeyboardMarkup()
+    for p in data["players"]:
+        markup.add(InlineKeyboardButton(p, callback_data=f"del_{p}"))
+    await call.message.answer("O'chirmoqchi bo'lgan o'yinchini tanlang:", reply_markup=markup)
 
-@dp.callback_query_handler(lambda c: c.data.startswith("del_"))
-async def delete_player(callback_query: types.CallbackQuery):
-    name = callback_query.data[4:]
-    if name in players:
-        players.remove(name)
-        await callback_query.message.answer(f"{name} oвЂchirildi.", reply_markup=admin_panel())
+@dp.callback_query_handler(lambda c: c.data.startswith('del_'))
+async def delete_player(call: types.CallbackQuery):
+    name = call.data[4:]
+    data["players"].remove(name)
+    save_data(data)
+    await call.message.answer(f"{name} o'chirildi.")
 
-@dp.callback_query_handler(lambda c: c.data == 'new_game')
-async def new_game(callback_query: types.CallbackQuery):
-    game_results.clear()
-    await callback_query.message.answer("Yangi o'yin boshlandi. Har bir o'yinchi uchun natijalarni kiriting.Format: 10+20+30+40")
-    await prompt_for_result(callback_query.message)
+# Yangi o'yin yaratish
+@dp.callback_query_handler(lambda c: c.data == 'start_game')
+async def start_game(call: types.CallbackQuery):
+    global current_scores, current_game, adding_scores, adding_player_index
+    current_scores = {}
+    current_game = data["players"][:]
+    adding_scores = True
+    adding_player_index = 0
+    await call.message.answer("Yangi o'yin boshlandi. Har bir o'yinchi uchun natijalarni kiriting.")
+    await ask_score(call.message)
 
-async def prompt_for_result(message, index=0):
-    if index >= len(players):
-        await post_results(message)
-        return
+async def ask_score(message):
+    global current_game, adding_player_index
+    if adding_player_index < len(current_game):
+        name = current_game[adding_player_index]
+        await message.answer(f"{name} uchun natijani kiriting (masalan: 10+20+30+40):")
+        dp.register_message_handler(get_score, content_types=types.ContentTypes.TEXT, state=None)
+    else:
+        await finalize_scores(message)
 
-    player = players[index]
-    await message.answer(f"{player} uchun natijalarni kiriting:")
-    @dp.message_handler()
-    async def get_result(msg: types.Message):
-        try:
-            parts = [int(p) for p in msg.text.split('+')]
-            total = sum(parts)
-            game_results.append((player, msg.text, total))
-            await prompt_for_result(msg, index + 1)
-        except:
-            await msg.answer("Xatolik! Format: 10+20+30+40")
+async def get_score(message: types.Message):
+    global current_scores, adding_player_index
+    name = current_game[adding_player_index]
+    score_str = message.text.strip()
+    try:
+        parts = list(map(int, score_str.split("+")))
+        total = sum(parts)
+        current_scores[name] = {
+            "detail": score_str,
+            "total": total
+        }
+        adding_player_index += 1
+        dp.message_handlers.unregister(get_score)
+        await ask_score(message)
+    except:
+        await message.reply("Xatolik! Raqamlarni `+` bilan kiriting (masalan: 10+20+30+40)")
 
-async def post_results(message):
-    text = "Umumiy natijalar:"
-    max_score = 0
+async def finalize_scores(message):
+    text = "Umumiy natijalar:\n\n"
     winner = ""
-    for name, detail, total in game_results:
-        text += f"{name}: {detail} = {total}"
-        if total > max_score:
-            max_score = total
+    max_score = 0
+    for name, score in current_scores.items():
+        text += f"{name}: {score['detail']} = {score['total']}\n"
+        if score['total'] > max_score:
+            max_score = score['total']
             winner = name
+    text += f"\n🏆 G'olib: {winner}\n\n"
+    from datetime import datetime
     date = datetime.now().strftime("%d.%m.%Y")
-    text = f"{date} yil hisobiga ko'ra bugungi o'yin g'olibi {winner}" + text + f" Tabriklaymiz, {winner}!"
+    text = f"{date} yil hisobiga ko'ra bugungi o'yin g'olibi {winner}\n\n" + text
     await message.answer(text)
 
-@dp.callback_query_handler(lambda c: c.data == 'report')
-async def report(callback_query: types.CallbackQuery):
-    if not game_results:
-        await callback_query.message.answer("Hali hech qanday o'yin natijasi yoвЂq.")
-        return
-    await post_results(callback_query.message)
+    # Saqlab qo'yamiz
+    data["games"].append({
+        "date": date,
+        "results": current_scores,
+        "winner": winner
+    })
+    save_data(data)
 
+# Hisobot
+@dp.callback_query_handler(lambda c: c.data == 'report')
+async def report(call: types.CallbackQuery):
+    if not data["games"]:
+        await call.message.answer("Hali hech qanday o'yin natijasi yo'q.")
+        return
+
+    text = "📊 So'nggi o'yin natijalari:\n\n"
+    for game in data["games"][-3:]:  # faqat oxirgi 3ta
+        text += f"📅 {game['date']} - 🏆 {game['winner']}\n"
+        for name, score in game["results"].items():
+            text += f"{name}: {score['detail']} = {score['total']}\n"
+        text += "\n"
+    await call.message.answer(text)
+
+# Run
 if __name__ == '__main__':
     executor.start_polling(dp, skip_updates=True)
