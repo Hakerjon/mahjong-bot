@@ -47,9 +47,9 @@ main_menu.add(KeyboardButton("3. Hisobotlar"))
 async def manage_players(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
     markup.add(
-        InlineKeyboardButton("➕ O'yinchi qo'shish", callback_data="add_player"),
+        InlineKeyboardButton("➕ O'yinchi qo'shish", callback_data="add_player")
     markup.add(
-        InlineKeyboardButton("➖ O'yinchi o'chirish", callback_data="remove_player"),
+        InlineKeyboardButton("➖ O'yinchi o'chirish", callback_data="remove_player")
     await call.message.answer("O'yinchilarni boshqarish:", reply_markup=markup)
 
 # O'yinchi qo'shish
