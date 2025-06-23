@@ -95,8 +95,7 @@ async def post_results(message):
     max_score = 0
     winner = ""
     for name, detail, total in game_results:
-        text += f"{name}: {detail} = {total}
-"
+        text += f"{name}: {detail} = {total}"
         if total > max_score:
             max_score = total
             winner = name
