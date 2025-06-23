@@ -34,7 +34,7 @@ adding_player_index = 0
 # Boshlanish
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
-    await message.reply("Salom! Bu Mahjong natijalar botidir. Admin paneldan foydalaning.")
+    await message.reply("Salom! Bu Mahjong natijalar botidir. Admin paneldan foydalaning.", reply_markup=admin_panel)
 
 # Admin panel
 main_menu = ReplyKeyboardMarkup(resize_keyboard=True)
