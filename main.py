@@ -34,11 +34,12 @@ adding_player_index = 0
 # Boshlanish
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
-    # Admin panel tugmalari (reply klaviatura)
-    admin_panel = ReplyKeyboardMarkup(resize_keyboard=True)
-    admin_panel.add(KeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"))
-    admin_panel.add(KeyboardButton("2. Yangi o'yin yaratish", callback_data="new_game"))
-    admin_panel.add(KeyboardButton("3. Hisobotlar", callback_data="report"))
+   admin_inline = InlineKeyboardMarkup(row_width=1)
+    admin_inline.add(
+    InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"),
+    InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="new_game"),
+    InlineKeyboardButton("3. Hisobotlar", callback_data="report")
+)
     
     await message.reply(
         "Salom! Bu Mahjong natijalar botidir. Admin paneldan foydalaning.",
