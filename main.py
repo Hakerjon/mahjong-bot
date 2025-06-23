@@ -2,7 +2,7 @@ import logging
 import json
 import os
 from aiogram import Bot, Dispatcher, types, executor
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.dispatcher.filters import Command
 
 API_TOKEN = os.getenv("BOT_TOKEN")  # Railway .env da saqlanadi
@@ -37,15 +37,10 @@ async def send_welcome(message: types.Message):
     await message.reply("Salom! Bu Mahjong natijalar botidir. Admin paneldan foydalaning.")
 
 # Admin panel
-@dp.message_handler(commands=['admin'])
-async def admin_panel(message: types.Message):
-    markup = InlineKeyboardMarkup()
-    markup.add(
-        InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"),
-        InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="start_game"),
-        InlineKeyboardButton("3. Hisobotlar", callback_data="report")
-    )
-    await message.reply("Admin panel:", reply_markup=markup)
+main_menu = ReplyKeyboardMarkup(resize_keyboard=True)
+main_menu.add(KeyboardButton("1. O'yinchilarni boshqarish"))
+main_menu.add(KeyboardButton("2. Yangi o'yin yaratish"))
+main_menu.add(KeyboardButton("3. Hisobotlar"))
 
 # O'yinchilarni boshqarish
 @dp.callback_query_handler(lambda c: c.data == 'manage_players')
@@ -53,8 +48,8 @@ async def manage_players(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
     markup.add(
         InlineKeyboardButton("➕ O'yinchi qo'shish", callback_data="add_player"),
-        InlineKeyboardButton("➖ O'yinchi o'chirish", callback_data="remove_player")
-    )
+        markup.add(InlineKeyboardButton("➖ O'yinchi o'chirish", callback_data="remove_player")
+    ),
     await call.message.answer("O'yinchilarni boshqarish:", reply_markup=markup)
 
 # O'yinchi qo'shish
