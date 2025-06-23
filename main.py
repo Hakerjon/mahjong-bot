@@ -114,8 +114,7 @@ async def show_report(callback_query: types.CallbackQuery):
     if not players:
         await callback_query.message.answer("O'yinchilar mavjud emas.")
         return
-    text = "Umumiy natijalar:
-    "
+    text = "Umumiy natijalar:\n"
     for name, records in players.items():
         total = sum(r[1] for r in records)
         text += f"{name}: {total} ball
