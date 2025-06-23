@@ -70,8 +70,7 @@ async def delete_player(callback_query: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data == 'new_game')
 async def new_game(callback_query: types.CallbackQuery):
     game_results.clear()
-    await callback_query.message.answer("Yangi o'yin boshlandi. Har bir o'yinchi uchun natijalarni kiriting.
-Format: 10+20+30+40")
+    await callback_query.message.answer("Yangi o'yin boshlandi. Har bir o'yinchi uchun natijalarni kiriting.Format: 10+20+30+40")
     await prompt_for_result(callback_query.message)
 
 async def prompt_for_result(message, index=0):
@@ -92,8 +91,7 @@ async def prompt_for_result(message, index=0):
             await msg.answer("Xatolik! Format: 10+20+30+40")
 
 async def post_results(message):
-    text = "Umumiy natijalar:
-"
+    text = "Umumiy natijalar:"
     max_score = 0
     winner = ""
     for name, detail, total in game_results:
@@ -103,10 +101,7 @@ async def post_results(message):
             max_score = total
             winner = name
     date = datetime.now().strftime("%d.%m.%Y")
-    text = f"{date} yil hisobiga ko'ra bugungi o'yin g'olibi {winner}
-
-" + text + f"
-Tabriklaymiz, {winner}!"
+    text = f"{date} yil hisobiga ko'ra bugungi o'yin g'olibi {winner}" + text + f" Tabriklaymiz, {winner}!"
     await message.answer(text)
 
 @dp.callback_query_handler(lambda c: c.data == 'report')
