@@ -34,18 +34,16 @@ adding_player_index = 0
 # Boshlanish
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
-    await message.reply("Salom! Bu Mahjong natijalar botidir. Admin paneldan foydalaning.", reply_markup=admin_panel)
-
-# Admin panel
-@dp.message_handler(commands=['admin'])
-async def admin_panel(message: types.Message):
-    main_menu = ReplyKeyboardMarkup(resize_keyboard=True)
-    main_menu.add(KeyboardButton("1. O'yinchilarni boshqarish"))
-    main_menu.add(KeyboardButton("2. Yangi o'yin yaratish"))
-    main_menu.add(KeyboardButton("3. Hisobotlar"))
+    # Admin panel tugmalari (reply klaviatura)
+    admin_panel = ReplyKeyboardMarkup(resize_keyboard=True)
+    admin_panel.add(KeyboardButton("1. O'yinchilarni boshqarish"))
+    admin_panel.add(KeyboardButton("2. Yangi o'yin yaratish"))
+    admin_panel.add(KeyboardButton("3. Hisobotlar"))
     
-    await message.answer("Admin panel:", reply_markup=main_menu)
-
+    await message.reply(
+        "Salom! Bu Mahjong natijalar botidir. Admin paneldan foydalaning.",
+        reply_markup=admin_panel
+    )
 # O'yinchilarni boshqarish
 @dp.callback_query_handler(lambda c: c.data == 'manage_players')
 async def manage_players(call: types.CallbackQuery):
