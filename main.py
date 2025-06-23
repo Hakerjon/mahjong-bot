@@ -37,6 +37,8 @@ async def send_welcome(message: types.Message):
     await message.reply("Salom! Bu Mahjong natijalar botidir. Admin paneldan foydalaning.", reply_markup=admin_panel)
 
 # Admin panel
+@dp.message_handler(commands=['admin'])
+async def admin_panel(message: types.Message):
 main_menu = ReplyKeyboardMarkup(resize_keyboard=True)
 main_menu.add(KeyboardButton("1. O'yinchilarni boshqarish"))
 main_menu.add(KeyboardButton("2. Yangi o'yin yaratish"))
