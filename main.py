@@ -34,10 +34,15 @@ adding_player_index = 0
 # Boshlanish
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
-admin_panel = InlineKeyboardMarkup(row_width=1).add(
+markup = InlineKeyboardMarkup()
+markup.add(
     InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"),
+)
+markup.add(
     InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="start_game"),
-    InlineKeyboardButton("3. Hisobotlar", callback_data="report")
+)
+markup.add(
+    InlineKeyboardButton("3. Hisobotlar", callback_data="report"),
 )
     
     await message.reply(
