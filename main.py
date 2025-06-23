@@ -103,9 +103,7 @@ async def process_results(message: types.Message):
             winner = sorted_results[0][0]
 
             result_lines = [f"{name}: {v[0]} = {v[1]}" for name, v in sorted_results]
-            text = f"{date} yil hisobiga ko'ra bugungi o'yin g'olibi {winner}
-" + '
-'.join(result_lines)
+            text = f"{date} yil hisobiga ko'ra bugungi o'yin g'olibi {winner}" + ''.join(result_lines)
             await bot.send_message(message.chat.id, text)
 
     except Exception as e:
@@ -117,7 +115,7 @@ async def show_report(callback_query: types.CallbackQuery):
         await callback_query.message.answer("O'yinchilar mavjud emas.")
         return
     text = "Umumiy natijalar:
-"
+    "
     for name, records in players.items():
         total = sum(r[1] for r in records)
         text += f"{name}: {total} ball
