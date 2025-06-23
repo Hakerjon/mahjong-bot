@@ -39,9 +39,12 @@ async def send_welcome(message: types.Message):
 # Admin panel
 @dp.message_handler(commands=['admin'])
 async def admin_panel(message: types.Message):
-main_menu.add(KeyboardButton("1. O'yinchilarni boshqarish"))
-main_menu.add(KeyboardButton("2. Yangi o'yin yaratish"))
-main_menu.add(KeyboardButton("3. Hisobotlar"))
+    main_menu = ReplyKeyboardMarkup(resize_keyboard=True)
+    main_menu.add(KeyboardButton("1. O'yinchilarni boshqarish"))
+    main_menu.add(KeyboardButton("2. Yangi o'yin yaratish"))
+    main_menu.add(KeyboardButton("3. Hisobotlar"))
+    
+    await message.answer("Admin panel:", reply_markup=main_menu)
 
 # O'yinchilarni boshqarish
 @dp.callback_query_handler(lambda c: c.data == 'manage_players')
