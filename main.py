@@ -146,12 +146,20 @@ async def finalize_scores(message):
     text = f"📅 {date} - bugungi o'yin g'olibi 🏆 **{winner}**! 🎉\n\n" + text
     await message.answer(text, parse_mode="Markdown")
 
+    # Guruhga yuborish
+    if GROUP_CHAT_ID:
+        try:
+            await bot.send_message(chat_id=int(GROUP_CHAT_ID), text=text, parse_mode="Markdown")
+        except Exception as e:
+            await message.answer(f"⚠️ Guruhga yuborishda xatolik: {e}")
+
     data["games"].append({
         "date": date,
         "results": current_scores,
         "winner": winner
     })
     save_data(data)
+
     await send_welcome(message)
 
 # Hisobot
@@ -169,10 +177,6 @@ async def report(call: types.CallbackQuery):
         text += "\n"
     await call.message.answer(text)
     await send_welcome(message)
-@dp.message_handler()
-async def detect_chat_id(message: types.Message):
-    if message.chat.type in ["group", "supergroup"]:
-        await message.answer(f"Guruh Chat ID: `{message.chat.id}`", parse_mode="Markdown")
 
 # Run
 if __name__ == '__main__':
