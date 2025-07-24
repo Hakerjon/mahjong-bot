@@ -168,14 +168,11 @@ async def report(call: types.CallbackQuery):
         text += "\n"
     await call.message.answer(text)
     await send_welcome(message)
-
-# Run
-if __name__ == '__main__':
-    executor.start_polling(dp, skip_updates=True)
-
 @dp.message_handler()
 async def detect_chat_id(message: types.Message):
     if message.chat.type in ["group", "supergroup"]:
         await message.answer(f"Guruh Chat ID: `{message.chat.id}`", parse_mode="Markdown")
 
-
+# Run
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
