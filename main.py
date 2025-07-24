@@ -5,7 +5,6 @@ from aiogram import Bot, Dispatcher, types, executor
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 from datetime import datetime
-from aiogram.utils.markdown import escape_md
 
 # Yuklash
 load_dotenv()
@@ -15,7 +14,7 @@ GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
 # Log sozlamalari
 logging.basicConfig(level=logging.INFO)
 
-bot = Bot(token=API_TOKEN, parse_mode="MarkdownV2")
+bot = Bot(token=API_TOKEN, parse_mode="HTML")  # HTML formatga o'zgartirildi
 dp = Dispatcher(bot)
 
 DATA_FILE = "data.json"
@@ -44,7 +43,7 @@ async def send_welcome(message: types.Message):
         InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="start_game"),
         InlineKeyboardButton("3. Hisobotlar", callback_data="report"),
     )
-    await message.answer("Mahjong botiga xush kelibsiz!", reply_markup=markup)
+    await message.answer("Mahjong botiga <b>xush kelibsiz!</b>", reply_markup=markup)
 
 # O'yinchilarni boshqarish
 @dp.callback_query_handler(lambda c: c.data == 'manage_players')
@@ -65,7 +64,7 @@ async def save_new_player(message: types.Message):
     name = message.text.strip()
     data["players"].append(name)
     save_data()
-    await message.answer(f"O'yinchi qo'shildi: {name}")
+    await message.answer(f"<b>O'yinchi qo'shildi:</b> {name}")
     dp.message_handlers.unregister(save_new_player)
     await send_welcome(message)
 
@@ -82,11 +81,11 @@ async def delete_player(call: types.CallbackQuery):
     if name in data["players"]:
         data["players"].remove(name)
         save_data()
-        await call.message.answer(f"{name} o'chirildi.")
+        await call.message.answer(f"<b>{name}</b> o'chirildi.")
         await send_welcome(message)
     else:
         await call.message.answer("O'yinchi topilmadi.")
-    await send_welcome(call.message)
+        await send_welcome(call.message)
 
 # Yangi o'yin boshlash
 @dp.callback_query_handler(lambda c: c.data == 'start_game')
@@ -96,9 +95,9 @@ async def start_game(call: types.CallbackQuery):
 
     players_list = "\n".join([f"{name[0]} - {name}" for name in data["players"]])
     await call.message.answer(
-        "🀄 Yangi o'yin boshlandi!\n"
+        "🀄 <b>Yangi o'yin boshlandi!</b>\n"
         "Natijalarni quyidagi formatda yuboring:\n\n"
-        "B: 19+78+17\nF: 17+11+25\nM: 27+25+20\n\n"
+        "<code>B: 19+78+17</code>\n<code>F: 17+11+25</code>\n<code>M: 27+25+20</code>\n\n"
         f"O'yinchilar:\n{players_list}"
     )
     dp.register_message_handler(process_scores, state=None)
@@ -136,16 +135,16 @@ async def finalize_scores(message: types.Message):
     global current_scores
     winner = ""
     max_score = -1
-    text = "📊 Umumiy natijalar:\n\n"
+    text = "<b>📊 Umumiy natijalar:</b>\n\n"
 
     for name, score in current_scores.items():
-        text += f"{escape_md(name)}: {escape_md(score['detail'])} = {score['total']}\n"
+        text += f"<b>{name}</b>: {score['detail']} = {score['total']}\n"
         if score['total'] > max_score:
             max_score = score['total']
             winner = name
 
     date = datetime.now().strftime("%d.%m.%Y")
-    final_text = f"📅 {date} \\- g'olib: 🏆 *{escape_md(winner)}* 🎉\n\n"
+    final_text = f"📅 {date} - g'olib: 🏆 <b>{winner}</b> 🎉\n\n"
 
     # Foydalanuvchiga
     await message.answer(final_text)
@@ -171,14 +170,14 @@ async def report(call: types.CallbackQuery):
         await call.message.answer("Hali hech qanday o'yin yo'q.")
         return
 
-    text = "📊 So'nggi 3 ta o'yin natijalari:\n\n"
+    text = "<b>📊 So'nggi 3 ta o'yin natijalari:</b>\n\n"
     for game in data["games"][-3:]:
-        text += f"📅 {game['date']} - 🏆 {game['winner']}\n"
+        text += f"📅 {game['date']} - 🏆 <b>{game['winner']}</b>\n"
         for name, score in game["results"].items():
             text += f"{name}: {score['detail']} = {score['total']}\n"
         text += "\n"
     await call.message.answer(text)
-    await send_welcome(message)
+    await send_welcome(call.message)
 
 # Run
 if __name__ == "__main__":
