@@ -5,6 +5,7 @@ from aiogram import Bot, Dispatcher, types, executor
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 from datetime import datetime
+from aiogram.utils.markdown import escape_md
 
 # Yuklash
 load_dotenv()
@@ -14,7 +15,7 @@ GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
 # Log sozlamalari
 logging.basicConfig(level=logging.INFO)
 
-bot = Bot(token=API_TOKEN, parse_mode="Markdown")
+bot = Bot(token=API_TOKEN, parse_mode="MarkdownV2")
 dp = Dispatcher(bot)
 
 DATA_FILE = "data.json"
@@ -138,13 +139,13 @@ async def finalize_scores(message: types.Message):
     text = "📊 Umumiy natijalar:\n\n"
 
     for name, score in current_scores.items():
-        text += f"{name}: {score['detail']} = {score['total']}\n"
+        text += f"<b>{name}</b>: {score['detail']} = {score['total']}\n"
         if score['total'] > max_score:
             max_score = score['total']
             winner = name
 
     date = datetime.now().strftime("%d.%m.%Y")
-    final_text = f"📅 {date} - bugungi o'yin g'olibi 🏆 **{winner}**! 🎉\n\n{text}"
+    final_text = f"📅 {date} - g'olib: 🏆 <b>{winner}</b> 🎉\n\n"
 
     # Foydalanuvchiga
     await message.answer(final_text)
