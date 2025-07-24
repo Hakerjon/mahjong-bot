@@ -14,7 +14,7 @@ GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
 # Log sozlamalari
 logging.basicConfig(level=logging.INFO)
 
-bot = Bot(token=API_TOKEN, parse_mode="Markdown")
+bot = Bot(token=API_TOKEN, parse_mode="MarkdownV2")
 dp = Dispatcher(bot)
 
 DATA_FILE = "data.json"
