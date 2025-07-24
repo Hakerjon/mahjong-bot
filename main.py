@@ -1,13 +1,14 @@
 import logging
 import json
 import os
+from datetime import datetime
 from aiogram import Bot, Dispatcher, types, executor
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
 from dotenv import load_dotenv
+
 load_dotenv()
 API_TOKEN = os.getenv("API_TOKEN")
-GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
+GROUP_CHAT_ID = -1001234567890  # <<< BU YERGA o'z guruh chat ID'ingni yoz
 
 logging.basicConfig(level=logging.INFO)
 
@@ -30,23 +31,16 @@ data = load_data()
 current_scores = {}
 current_game = []
 
-# Boshlanish
+# START
 @dp.message_handler(commands=['start'])
 async def send_welcome(message: types.Message):
     markup = InlineKeyboardMarkup()
-    markup.add(
-        InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"),
-    )
-    markup.add(
-        InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="start_game"),
-    )
-    markup.add(
-        InlineKeyboardButton("3. Hisobotlar", callback_data="report"),
-    )
+    markup.add(InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"))
+    markup.add(InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="start_game"))
+    markup.add(InlineKeyboardButton("3. Hisobotlar", callback_data="report"))
+    await message.answer("Salom! Mahjong natijalar botiga xush kelibsiz!", reply_markup=markup)
 
-    await message.answer("=>", reply_markup=markup)
-
-# O'yinchilarni boshqarish
+# O'yinchilar
 @dp.callback_query_handler(lambda c: c.data == 'manage_players')
 async def manage_players(call: types.CallbackQuery):
     markup = InlineKeyboardMarkup()
@@ -80,15 +74,14 @@ async def delete_player(call: types.CallbackQuery):
     data["players"].remove(name)
     save_data(data)
     await call.message.answer(f"{name} o'chirildi.")
-    await send_welcome(message)
+    await send_welcome(call.message)
 
-# Yangi o'yin yaratish (umumiy natija formatida)
+# O'yin boshlanishi
 @dp.callback_query_handler(lambda c: c.data == 'start_game')
 async def start_game(call: types.CallbackQuery):
     global current_scores, current_game
     current_scores = {}
     current_game = data["players"][:]
-
     players_short = "\n".join([f"{name[0]} - {name}" for name in current_game])
     await call.message.answer(
         "🀄 Yangi o'yin boshlandi!\n"
@@ -102,7 +95,6 @@ async def process_scores(message: types.Message):
     global current_scores
     text = message.text.strip().replace(" ", "")
     lines = text.splitlines()
-
     player_map = {name[0].upper(): name for name in data["players"]}
 
     for line in lines:
@@ -116,10 +108,7 @@ async def process_scores(message: types.Message):
                 return
             parts = list(map(int, score_str.split("+")))
             total = sum(parts)
-            current_scores[name] = {
-                "detail": "+".join(map(str, parts)),
-                "total": total
-            }
+            current_scores[name] = {"detail": "+".join(map(str, parts)), "total": total}
         except:
             await message.reply(f"❌ Xato format: {line}")
             return
@@ -141,25 +130,25 @@ async def finalize_scores(message):
             max_score = score['total']
             winner = name
 
-    from datetime import datetime
     date = datetime.now().strftime("%d.%m.%Y")
     text = f"📅 {date} - bugungi o'yin g'olibi 🏆 **{winner}**! 🎉\n\n" + text
+
+    # Foydalanuvchiga yuborish
     await message.answer(text, parse_mode="Markdown")
 
-    # Guruhga yuborish
-    if GROUP_CHAT_ID:
-        try:
-            await bot.send_message(chat_id=int(GROUP_CHAT_ID), text=text, parse_mode="Markdown")
-        except Exception as e:
-            await message.answer(f"⚠️ Guruhga yuborishda xatolik: {e}")
+    # Guruhga avtomatik yuborish
+    try:
+        await bot.send_message(chat_id=GROUP_CHAT_ID, text=text, parse_mode="Markdown")
+    except Exception as e:
+        logging.error(f"Guruhga yuborib bo'lmadi: {e}")
 
+    # Saqlash
     data["games"].append({
         "date": date,
         "results": current_scores,
         "winner": winner
     })
     save_data(data)
-
     await send_welcome(message)
 
 # Hisobot
@@ -176,7 +165,13 @@ async def report(call: types.CallbackQuery):
             text += f"{name}: {score['detail']} = {score['total']}\n"
         text += "\n"
     await call.message.answer(text)
-    await send_welcome(message)
+    await send_welcome(call.message)
+
+# Faol guruhni aniqlash uchun
+@dp.message_handler()
+async def detect_group(message: types.Message):
+    if message.chat.type in ["group", "supergroup"]:
+        await message.answer(f"Guruh ID: `{message.chat.id}`", parse_mode="Markdown")
 
 # Run
 if __name__ == '__main__':
