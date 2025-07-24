@@ -150,21 +150,7 @@ async def finalize_scores(message):
     })
     save_data(data)
 
-@dp.message_handler(commands=['start'])
-async def send_welcome(message: types.Message):
-    markup = InlineKeyboardMarkup()
-    markup.add(
-        InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"),
-    )
-    markup.add(
-        InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="start_game"),
-    )
-    markup.add(
-        InlineKeyboardButton("3. Hisobotlar", callback_data="report"),
-    )
-
-    await message.answer("Salom! Mahjong natijalar botiga xush kelibsiz!", reply_markup=markup)
-
+await send_welcome(message)
 
 # Hisobot
 @dp.callback_query_handler(lambda c: c.data == 'report')
