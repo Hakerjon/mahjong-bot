@@ -139,13 +139,13 @@ async def finalize_scores(message: types.Message):
     text = "📊 Umumiy natijalar:\n\n"
 
     for name, score in current_scores.items():
-        text += f"<b>{name}</b>: {score['detail']} = {score['total']}\n"
+        text += f"{escape_md(name)}: {escape_md(score['detail'])} = {score['total']}\n"
         if score['total'] > max_score:
             max_score = score['total']
             winner = name
 
     date = datetime.now().strftime("%d.%m.%Y")
-    final_text = f"📅 {date} - g'olib: 🏆 <b>{winner}</b> 🎉\n\n"
+    final_text = f"📅 {date} \\- g'olib: 🏆 *{escape_md(winner)}* 🎉\n\n"
 
     # Foydalanuvchiga
     await message.answer(final_text)
