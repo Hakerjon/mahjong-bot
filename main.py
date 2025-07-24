@@ -7,6 +7,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 load_dotenv()
 API_TOKEN = os.getenv("API_TOKEN")
+GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
 
 logging.basicConfig(level=logging.INFO)
 
