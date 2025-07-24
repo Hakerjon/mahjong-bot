@@ -151,7 +151,8 @@ async def finalize_scores(message):
     })
     save_data(data)
 
-markup = InlineKeyboardMarkup()
+async def send_welcome(message: types.Message):
+    markup = InlineKeyboardMarkup()
     markup.add(
         InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"),
     )
@@ -161,8 +162,13 @@ markup = InlineKeyboardMarkup()
     markup.add(
         InlineKeyboardButton("3. Hisobotlar", callback_data="report"),
     )
-    await message.answer("Quyidagi tugmalar orqali davom etishingiz mumkin:", reply_markup=markup)
 
+    await message.answer("Salom! Admin panel:", reply_markup=markup)
+ 
+    await message.reply(
+        "Salom! Bu Mahjong natijalar botidir. Admin paneldan foydalaning.",
+        reply_markup=admin_panel
+    )
 # Hisobot
 @dp.callback_query_handler(lambda c: c.data == 'report')
 async def report(call: types.CallbackQuery):
