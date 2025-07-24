@@ -67,6 +67,7 @@ async def send_welcome(message: types.Message):
 # O'yinchilarni boshqarish
 @dp.callback_query_handler(lambda c: c.data == 'manage_players')
 async def manage_players(call: types.CallbackQuery):
+    await call.answer()  # Callbackni tasdiqlash
     markup = InlineKeyboardMarkup(row_width=1)
     markup.add(
         InlineKeyboardButton("➕ O'yinchi qo'shish", callback_data="add_player"),
@@ -76,24 +77,32 @@ async def manage_players(call: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data == 'add_player')
 async def ask_player_name(call: types.CallbackQuery, state: FSMContext):
+    await call.answer()
     await call.message.answer("Yangi o'yinchi ismini yozing:")
     await PlayerForm.NAME.set()
 
 @dp.message_handler(state=PlayerForm.NAME)
 async def save_new_player(message: types.Message, state: FSMContext):
     name = message.text.strip()
+    if not name:
+        await message.answer("Ism bo'sh bo'lishi mumkin emas!")
+        return
     if name in data["players"]:
-        await message.answer(f"O'yinchi {name} allaqachon mavjud!")
+        await message.answer(f"O'yinchi {escape_markdown(name)} allaqachon mavjud!")
         await state.finish()
         return
     data["players"].append(name)
     save_data()
-    await message.answer(f"O'yinchi qo'shildi: {name}")
+    await message.answer(f"O'yinchi qo'shildi: {escape_markdown(name)}")
     await state.finish()
     await send_welcome(message)
 
 @dp.callback_query_handler(lambda c: c.data == 'remove_player')
 async def remove_player(call: types.CallbackQuery):
+    await call.answer()
+    if not data["players"]:
+        await call.message.answer("O'yinchilar ro'yxati bo'sh!")
+        return
     markup = InlineKeyboardMarkup(row_width=1)
     for p in data["players"]:
         markup.add(InlineKeyboardButton(p, callback_data=f"del_{p}"))
@@ -101,11 +110,12 @@ async def remove_player(call: types.CallbackQuery):
 
 @dp.callback_query_handler(lambda c: c.data.startswith('del_'))
 async def delete_player(call: types.CallbackQuery):
+    await call.answer()
     name = call.data[4:]
     if name in data["players"]:
         data["players"].remove(name)
         save_data()
-        await call.message.answer(f"{name} o'chirildi.")
+        await call.message.answer(f"{escape_markdown(name)} o'chirildi.")
     else:
         await call.message.answer("O'yinchi topilmadi.")
     await send_welcome(call.message)
@@ -113,16 +123,18 @@ async def delete_player(call: types.CallbackQuery):
 # Yangi o'yin boshlash
 @dp.callback_query_handler(lambda c: c.data == 'start_game')
 async def start_game(call: types.CallbackQuery, state: FSMContext):
+    await call.answer()
     if not data["players"]:
         await call.message.answer("O'yin boshlash uchun kamida bir o'yinchi qo'shing!")
         return
     await state.update_data(current_scores={})
-    players_list = "\n".join([f"{name[0]} - {name}" for name in data["players"]])
+    players_list = "\n".join([f"{name[0]} - {escape_markdown(name)}" for name in data["players"]])
     await call.message.answer(
         "🀄 Yangi o'yin boshlandi!\n"
         "Natijalarni quyidagi formatda yuboring:\n\n"
         "B: 19+78+17\nF: 17+11+25\nM: 27+25+20\n\n"
-        f"O'yinchilar:\n{players_list}"
+        f"O'yinchilar:\n{players_list}",
+        parse_mode="MarkdownV2"
     )
     await GameForm.SCORES.set()
 
@@ -177,7 +189,7 @@ async def finalize_scores(message: types.Message, current_scores):
     try:
         await bot.send_message(GROUP_CHAT_ID, final_text, parse_mode="MarkdownV2")
     except Exception as e:
-        await message.answer(f"Guruhga yuborilmadi: {e}")
+        await message.answer(f"Guruhga yuborilmadi: {str(e)}")
 
     data["games"].append({
         "date": date,
@@ -190,6 +202,7 @@ async def finalize_scores(message: types.Message, current_scores):
 # Hisobotlar
 @dp.callback_query_handler(lambda c: c.data == 'report')
 async def report(call: types.CallbackQuery):
+    await call.answer()
     if not data["games"]:
         await call.message.answer("Hali hech qanday o'yin yo'q.")
         return
