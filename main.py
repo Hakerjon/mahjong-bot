@@ -43,7 +43,7 @@ async def send_welcome(message: types.Message):
         InlineKeyboardButton("3. Hisobotlar", callback_data="report"),
     )
 
-    await message.answer("Salom! Mahjong natijalar botiga xush kelibsiz!", reply_markup=markup)
+    await message.answer("=>", reply_markup=markup)
 
 # O'yinchilarni boshqarish
 @dp.callback_query_handler(lambda c: c.data == 'manage_players')
@@ -64,6 +64,7 @@ async def save_new_player(message: types.Message):
     save_data(data)
     await message.answer(f"O'yinchi qo'shildi: {name}")
     dp.message_handlers.unregister(save_new_player)
+    await send_welcome(message)
 
 @dp.callback_query_handler(lambda c: c.data == 'remove_player')
 async def remove_player(call: types.CallbackQuery):
@@ -78,6 +79,7 @@ async def delete_player(call: types.CallbackQuery):
     data["players"].remove(name)
     save_data(data)
     await call.message.answer(f"{name} o'chirildi.")
+    await send_welcome(message)
 
 # Yangi o'yin yaratish (umumiy natija formatida)
 @dp.callback_query_handler(lambda c: c.data == 'start_game')
@@ -165,6 +167,7 @@ async def report(call: types.CallbackQuery):
             text += f"{name}: {score['detail']} = {score['total']}\n"
         text += "\n"
     await call.message.answer(text)
+    await send_welcome(message)
 
 # Run
 if __name__ == '__main__':
