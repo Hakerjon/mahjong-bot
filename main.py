@@ -149,8 +149,7 @@ async def finalize_scores(message):
         "winner": winner
     })
     save_data(data)
-
-await send_welcome(message)
+    await send_welcome(message)
 
 # Hisobot
 @dp.callback_query_handler(lambda c: c.data == 'report')
