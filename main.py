@@ -151,6 +151,18 @@ async def finalize_scores(message):
     })
     save_data(data)
 
+markup = InlineKeyboardMarkup()
+    markup.add(
+        InlineKeyboardButton("1. O'yinchilarni boshqarish", callback_data="manage_players"),
+    )
+    markup.add(
+        InlineKeyboardButton("2. Yangi o'yin yaratish", callback_data="start_game"),
+    )
+    markup.add(
+        InlineKeyboardButton("3. Hisobotlar", callback_data="report"),
+    )
+    await message.answer("Quyidagi tugmalar orqali davom etishingiz mumkin:", reply_markup=markup)
+
 # Hisobot
 @dp.callback_query_handler(lambda c: c.data == 'report')
 async def report(call: types.CallbackQuery):
