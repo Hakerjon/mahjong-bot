@@ -7,7 +7,7 @@ from aiogram.dispatcher.filters import Command
 
 from dotenv import load_dotenv
 load_dotenv()
-API_TOKEN = os.getenv("1821805707:AAFh9FcbtMoi4kKkZmpnY5k7Wz9uevyU6L0")
+API_TOKEN = os.getenv("API_TOKEN")
 
 logging.basicConfig(level=logging.INFO)
 
