@@ -5,7 +5,9 @@ from aiogram import Bot, Dispatcher, types, executor
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 from aiogram.dispatcher.filters import Command
 
-API_TOKEN = os.getenv("BOT_TOKEN")  # Railway .env da saqlanadi
+from dotenv import load_dotenv
+load_dotenv()
+API_TOKEN = os.getenv("1821805707:AAFh9FcbtMoi4kKkZmpnY5k7Wz9uevyU6L0")
 
 logging.basicConfig(level=logging.INFO)
 
