@@ -5,6 +5,9 @@ from aiogram import Bot, Dispatcher, types, executor
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
 from datetime import datetime
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+import threading
 
 # Yuklash
 load_dotenv()
@@ -19,20 +22,36 @@ dp = Dispatcher(bot)
 
 DATA_FILE = "data.json"
 data = {"players": [], "games": []}
-current_scores = {}
+file_lock = threading.Lock()
 
 # Ma'lumotlarni yuklash/saqlash
 def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            return json.load(f)
-    return {"players": [], "games": []}
+    with file_lock:
+        if os.path.exists(DATA_FILE):
+            with open(DATA_FILE, "r") as f:
+                return json.load(f)
+        return {"players": [], "games": []}
 
 def save_data():
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
+    with file_lock:
+        with open(DATA_FILE, "w") as f:
+            json.dump(data, f)
 
 data = load_data()
+
+# MarkdownV2 uchun escape funksiyasi
+def escape_markdown(text):
+    chars = r"_*[]()~`>#+-=|{}.!"
+    for char in chars:
+        text = text.replace(char, f"\\{char}")
+    return text
+
+# Holatlar
+class PlayerForm(StatesGroup):
+    NAME = State()
+
+class GameForm(StatesGroup):
+    SCORES = State()
 
 # Start
 @dp.message_handler(commands=['start'])
@@ -56,16 +75,21 @@ async def manage_players(call: types.CallbackQuery):
     await call.message.answer("O'yinchilarni boshqarish:", reply_markup=markup)
 
 @dp.callback_query_handler(lambda c: c.data == 'add_player')
-async def ask_player_name(call: types.CallbackQuery):
+async def ask_player_name(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer("Yangi o'yinchi ismini yozing:")
-    dp.register_message_handler(save_new_player, state=None)
+    await PlayerForm.NAME.set()
 
-async def save_new_player(message: types.Message):
+@dp.message_handler(state=PlayerForm.NAME)
+async def save_new_player(message: types.Message, state: FSMContext):
     name = message.text.strip()
+    if name in data["players"]:
+        await message.answer(f"O'yinchi {name} allaqachon mavjud!")
+        await state.finish()
+        return
     data["players"].append(name)
     save_data()
     await message.answer(f"O'yinchi qo'shildi: {name}")
-    dp.message_handlers.unregister(save_new_player)
+    await state.finish()
     await send_welcome(message)
 
 @dp.callback_query_handler(lambda c: c.data == 'remove_player')
@@ -88,10 +112,11 @@ async def delete_player(call: types.CallbackQuery):
 
 # Yangi o'yin boshlash
 @dp.callback_query_handler(lambda c: c.data == 'start_game')
-async def start_game(call: types.CallbackQuery):
-    global current_scores
-    current_scores = {}
-
+async def start_game(call: types.CallbackQuery, state: FSMContext):
+    if not data["players"]:
+        await call.message.answer("O'yin boshlash uchun kamida bir o'yinchi qo'shing!")
+        return
+    await state.update_data(current_scores={})
     players_list = "\n".join([f"{name[0]} - {name}" for name in data["players"]])
     await call.message.answer(
         "🀄 Yangi o'yin boshlandi!\n"
@@ -99,10 +124,13 @@ async def start_game(call: types.CallbackQuery):
         "B: 19+78+17\nF: 17+11+25\nM: 27+25+20\n\n"
         f"O'yinchilar:\n{players_list}"
     )
-    dp.register_message_handler(process_scores, state=None)
+    await GameForm.SCORES.set()
 
-async def process_scores(message: types.Message):
-    global current_scores
+@dp.message_handler(state=GameForm.SCORES)
+async def process_scores(message: types.Message, state: FSMContext):
+    user_data = await state.get_data()
+    current_scores = user_data.get("current_scores", {})
+
     lines = message.text.strip().replace(" ", "").splitlines()
     player_map = {name[0].upper(): name for name in data["players"]}
 
@@ -118,38 +146,36 @@ async def process_scores(message: types.Message):
             parts = list(map(int, score_str.split("+")))
             total = sum(parts)
             current_scores[name] = {"detail": "+".join(map(str, parts)), "total": total}
-        except:
-            await message.reply(f"Xato format: {line}")
+        except ValueError:
+            await message.reply(f"Xato format: {line}. Raqamlar va '+' belgisidan foydalaning.")
             return
 
     if not current_scores:
         await message.reply("Hech qanday natija topilmadi.")
         return
 
-    dp.message_handlers.unregister(process_scores)
-    await finalize_scores(message)
+    await state.update_data(current_scores=current_scores)
+    await state.finish()
+    await finalize_scores(message, current_scores)
 
-async def finalize_scores(message: types.Message):
-    global current_scores
+async def finalize_scores(message: types.Message, current_scores):
     winner = ""
     max_score = -1
     text = "📊 Umumiy natijalar:\n\n"
 
     for name, score in current_scores.items():
-        text += f"{name}: {score['detail']} = {score['total']}\n"
+        detail = escape_markdown(score['detail'])
+        text += f"{escape_markdown(name)}: {detail} = {score['total']}\n"
         if score['total'] > max_score:
             max_score = score['total']
             winner = name
 
     date = datetime.now().strftime("%d.%m.%Y")
-    final_text = f"📅 {date} - bugungi o'yin g'olibi 🏆 **{winner}**! 🎉\n\n{text}"
+    final_text = f"📅 {date} - bugungi o'yin g'olibi 🏆 **{escape_markdown(winner)}**! 🎉\n\n{text}"
 
-    # Foydalanuvchiga
-    await message.answer(final_text)
-
-    # Guruhga
+    await message.answer(final_text, parse_mode="MarkdownV2")
     try:
-        await bot.send_message(GROUP_CHAT_ID, final_text)
+        await bot.send_message(GROUP_CHAT_ID, final_text, parse_mode="MarkdownV2")
     except Exception as e:
         await message.answer(f"Guruhga yuborilmadi: {e}")
 
@@ -170,11 +196,12 @@ async def report(call: types.CallbackQuery):
 
     text = "📊 So'nggi 3 ta o'yin natijalari:\n\n"
     for game in data["games"][-3:]:
-        text += f"📅 {game['date']} - 🏆 {game['winner']}\n"
+        text += f"📅 {game['date']} - 🏆 {escape_markdown(game['winner'])}\n"
         for name, score in game["results"].items():
-            text += f"{name}: {score['detail']} = {score['total']}\n"
+            detail = escape_markdown(score['detail'])
+            text += f"{escape_markdown(name)}: {detail} = {score['total']}\n"
         text += "\n"
-    await call.message.answer(text)
+    await call.message.answer(text, parse_mode="MarkdownV2")
 
 # Run
 if __name__ == "__main__":
