@@ -144,14 +144,16 @@ async def finalize_scores(message: types.Message):
             winner = name
 
     date = datetime.now().strftime("%d.%m.%Y")
-    final_text = f"📅 {date} - g'olib: 🏆 <b>{winner}</b> 🎉\n\n"
+    final_text = f"\n📅 {date} - g'olib: 🏆 <b>{winner}</b> 🎉"
+
+    full_result = text + final_text
 
     # Foydalanuvchiga
-    await message.answer(final_text)
+    await message.answer(full_result)
 
     # Guruhga
     try:
-        await bot.send_message(GROUP_CHAT_ID, final_text)
+        await bot.send_message(GROUP_CHAT_ID, full_result)
     except Exception as e:
         await message.answer(f"Guruhga yuborilmadi: {e}")
 
@@ -162,6 +164,7 @@ async def finalize_scores(message: types.Message):
     })
     save_data()
     await send_welcome(message)
+
 
 # Hisobotlar
 @dp.callback_query_handler(lambda c: c.data == 'report')
