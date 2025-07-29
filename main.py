@@ -163,7 +163,7 @@ async def finalize_scores(message: types.Message):
         "winner": winner
     })
     save_data()
-    await send_welcome(message)
+    # await send_welcome(message)
 
 
 # Hisobotlar
@@ -180,7 +180,7 @@ async def report(call: types.CallbackQuery):
             text += f"{name}: {score['detail']} = {score['total']}\n"
         text += "\n"
     await call.message.answer(text)
-    await send_welcome(call.message)
+    # await send_welcome(call.message)
 
 # Run
 if __name__ == "__main__":
